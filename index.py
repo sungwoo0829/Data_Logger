@@ -23,8 +23,8 @@ async def on_ready():
 
 @bot.slash_command(description="Check bot's response latency")
 async def ping(ctx):
-    embed = discord.Embed(title="Pong!", description=f"Delay: {bot.latency} seconds", color=0xFFFFFF)
-    embed.set_footer(text="Embed Footer")
+    delay = int(bot.latency*1000)
+    embed = discord.Embed(title="Pong!", description=f"Delay: {delay} ms", color=0xFFFFFF)
     await ctx.respond(embed=embed)
 
 
@@ -65,7 +65,7 @@ async def on_message_delete(message):
 
     else:
 
-        if message.content:
+        if message.content or message.stickers:
         
             for ch in message.guild.text_channels:
                 if "-message.delete.content" in str(ch.topic) or "-m.d.c" in str(ch.topic):
@@ -73,10 +73,11 @@ async def on_message_delete(message):
             embed = discord.Embed(title="",
                     description="Message sent by {0.mention} deleted in {1.mention}\n\n{2}".format(message.author,message.channel,message.content), color=0xFF0000)
             embed.set_author(name="{0}#{1}".format(message.author.name, message.author.discriminator), icon_url="{}".format(message.author.display_avatar.url))
+            if message.stickers:
+                for st in message.stickers:
+                    embed.set_image(url=f"{st.url}")
             channel = bot.get_channel(logging_channel)
             await channel.send(embed=embed)
-
-
         
 
 
@@ -138,7 +139,7 @@ async def on_member_join(member):
     with open("guild.json", "r") as json_file:
         json_data = json.load(json_file)
     if "{}".format(member.guild.id) in json_data.keys() and "autokick_created_at" in json_data["{}".format(member.guild.id)].keys():
-        now = datetime.datetime.now().replace(tzinfo=None)
+        now = datetime.datetime.utcnow().replace(tzinfo=None)
         created_at = member.created_at.replace(tzinfo=None)
         diff = now - created_at
         if diff.days < json_data["{}".format(member.guild.id)]["autokick_created_at"]:
@@ -156,27 +157,64 @@ async def on_voice_state_update(member, before, after):
             logging_channel1=ch.id
         if "-voice.join_leave" in str(ch.topic) or "-v.jl" in str(ch.topic):
             logging_channel2=ch.id
-    if before.self_mute != after.self_mute:
-        return
-    if before.self_deaf != after.self_deaf:
-        return
-    if before.self_stream != after.self_stream:
-        return
-    if before.self_video != after.self_video:
-        return
-    if before.deaf != after.deaf:
-        if after.deaf:
+    if before.mute != after.mute:
+        if after.mute:
             state="Mute"
         else:
             state="Unmute"
-        discord.Guild.audit_logs(limit=1,action="member_update")
-        user=member.guild.audit_logs(limit=1,action="member_update").user
+        async for entry in member.guild.audit_logs(limit=1,action=discord.AuditLogAction.member_update):
+            user=entry.user
         embed = discord.Embed(title="",
                 description="{0.mention} had their voice state updated.\n**State**\n{1}\n**Voice Channel**\n{2.mention}".format(member,state,before.channel), color=0xFF0000)
         embed.set_author(name="{0}#{1}".format(member.name, member.discriminator), icon_url="{}".format(member.display_avatar.url))
-        embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.mention}")
+        embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.name}#{user.discriminator}({user.id})")
         channel = bot.get_channel(logging_channel1)
         await channel.send(embed=embed)
+    if before.deaf != after.deaf:
+        if after.deaf:
+            state="Deaf"
+        else:
+            state="Undeaf"
+        async for entry in member.guild.audit_logs(limit=1,action=discord.AuditLogAction.member_update):
+            user=entry.user
+        embed = discord.Embed(title="",
+                description="{0.mention} had their voice state updated.\n**State**\n{1}\n**Voice Channel**\n{2.mention}".format(member,state,before.channel), color=0xFF0000)
+        embed.set_author(name="{0}#{1}".format(member.name, member.discriminator), icon_url="{}".format(member.display_avatar.url))
+        embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.name}#{user.discriminator}({user.id})")
+        channel = bot.get_channel(logging_channel1)
+        await channel.send(embed=embed)
+    if before.channel != after.channel:
+        now = datetime.datetime.utcnow().replace(tzinfo=None)
+        
+        if not after.channel:
+            state="leave"
+            embed = discord.Embed(title="",
+                description=f"{member.mention} {state} the voice channel\n**Channel**\n{before.channel.mention}", color=0xFF0000)
+            async for entry in member.guild.audit_logs(limit=1,action=discord.AuditLogAction.member_disconnect):    
+                created_at = entry.created_at.replace(tzinfo=None)
+                diff = now - created_at
+                if diff.total_seconds() < 10:
+                    user=entry.user
+                    embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.name}#{user.discriminator}({user.id})")
+        elif not before.channel:
+            state="join"
+            embed = discord.Embed(title="",
+                description=f"{member.mention} {state} the voice channel\n**Channel**\n{after.channel.mention}", color=0xFF0000)
+        else:
+            state="move"
+            embed = discord.Embed(title="",
+                description=f"{member.mention} {state} from {before.channel.mention} to {after.channel.mention}\n**Current channel**\n{after.channel.mention}\n**Previous channel**\n{before.channel.mention}", color=0xFF0000)
+            async for entry in member.guild.audit_logs(limit=1,action=discord.AuditLogAction.member_move):
+                created_at = entry.created_at.replace(tzinfo=None)
+                diff = now - created_at
+                if diff.total_seconds() < 10 and entry.extra.channel.id == after.channel.id:
+                    user=entry.user
+                    embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.name}#{user.discriminator}({user.id})")
+        
+        embed.set_author(name="{0}#{1}".format(member.name, member.discriminator), icon_url="{}".format(member.display_avatar.url))
+        channel = bot.get_channel(logging_channel2)
+        await channel.send(embed=embed)
+            
 
         
 
