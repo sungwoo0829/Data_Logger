@@ -64,7 +64,7 @@ async def on_message_delete(message):
         pass
 
     else:
-
+        now=datetime.datetime.utcnow().replace(tzinfo=None)
         if message.content or message.stickers:
         
             for ch in message.guild.text_channels:
@@ -76,6 +76,11 @@ async def on_message_delete(message):
             if message.stickers:
                 for st in message.stickers:
                     embed.set_image(url=f"{st.url}")
+            async for entry in message.guild.audit_logs(limit=5,action=discord.AuditLogAction.message_delete):
+                diff=now-entry.created_at.replace(tzinfo=None)
+                if entry.extra.channel.id==message.channel.id and entry.target.id == message.author.id and diff.total_seconds()<20:
+                    user=entry.user
+                    embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.name}#{user.discriminator}({user.id})")
             channel = bot.get_channel(logging_channel)
             await channel.send(embed=embed)
         
@@ -95,6 +100,12 @@ async def on_message_delete(message):
             embed.set_author(name="{0}#{1}".format(message.author.name, message.author.discriminator), icon_url="{}".format(message.author.display_avatar.url))
 
             files_data=[]
+
+            async for entry in message.guild.audit_logs(limit=5,action=discord.AuditLogAction.message_delete):
+                diff=now-entry.created_at.replace(tzinfo=None)
+                if entry.extra.channel.id==message.channel.id and entry.target.id == message.author.id and diff.total_seconds()<20:
+                    user=entry.user
+                    embed.set_footer(icon_url=user.display_avatar.url,text=f"{user.name}#{user.discriminator}({user.id})")
 
             channel = bot.get_channel(logging_channel)
             for attach in message.attachments:
