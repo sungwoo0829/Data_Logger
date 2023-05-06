@@ -8,19 +8,19 @@ from pydoc import cli
 from ssl import CHANNEL_BINDING_TYPES
 import requests
 import json
-import pycord
 import discord
-from discord.commands import Option
+
 
 intents=discord.Intents.all()
 intents.message_content=True
-bot=discord.Bot(intents=intents)
+bot=discord.Client(intents=intents)
 
 
 @bot.event
 async def on_ready():
     print(f"logged in as {bot.user}")
 
+"""
 @bot.slash_command(description="Check bot's response latency")
 async def ping(ctx):
     delay = int(bot.latency*1000)
@@ -47,7 +47,7 @@ async def autokick_created_at(ctx, days: Option(int, "set day")):
     await ctx.respond(f"set {days} days!")
 
 
-
+"""
 
 
 
