@@ -10,15 +10,17 @@ import requests
 import json
 import discord
 
+
 intents=discord.Intents.all()
 intents.message_content=True
 bot=discord.Client(intents=intents)
 
-"""
+
 @bot.event
 async def on_ready():
     print(f"logged in as {bot.user}")
 
+"""
 @bot.slash_command(description="Check bot's response latency")
 async def ping(ctx):
     delay = int(bot.latency*1000)
@@ -44,7 +46,6 @@ async def autokick_created_at(ctx, days: Option(int, "set day")):
         json.dump(json_data, json_file, indent=2)
     await ctx.respond(f"set {days} days!")
 """
-
 
 
 
