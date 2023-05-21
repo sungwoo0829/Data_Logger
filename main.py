@@ -105,13 +105,19 @@ async def on_message_delete(message):
             channel = bot.get_channel(logging_channel)
             for attach in message.attachments:
                 info = requests.head(attach.proxy_url)
-            
-                if int(info.headers["Content-Length"]) <= 8388608:
-                    files_data.append(await attach.to_file())
-                elif message.guild.premium_tier==2 and int(info.headers["Content-Length"]) <= 52428800:
-                    files_data.append(await attach.to_file())
-                elif message.guild.premium_tier==3 and int(info.headers["Content-Length"]) <= 104857600:
-                    files_data.append(await attach.to_file())
+                size=int(info.headers["Content-Length"])
+                tier=message.guild.premium_tier
+                if tier<2:
+                    if int(info.headers["Content-Length"]) <= 8388608:
+                        files_data.append(await attach.to_file())
+                    else:
+                        compression(attach.proxy_url,8,attach.content_type)
+                elif tier==2
+                    if int(info.headers["Content-Length"]) <= 52428800:
+                        files_data.append(await attach.to_file())
+                elif tier==3
+                    if int(info.headers["Content-Length"]) <= 104857600:
+                        files_data.append(await attach.to_file())
             await channel.send(embed=embed,files=files_data)
 
         
@@ -230,3 +236,12 @@ with open("config.json", "r") as json_file:
     json_data = json.load(json_file)
 token = json_data["token"]
 bot.run(token)
+
+
+
+def compression(url,size,type):
+    info = requests.head(url)
+    size=int(info.headers["Content-Length"])
+    if type=="image":
+        
+    
