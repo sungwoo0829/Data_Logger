@@ -238,10 +238,10 @@ token = json_data["token"]
 bot.run(token)
 
 
-
+"""
 def compression(url,size,type):
     info = requests.head(url)
     size=int(info.headers["Content-Length"])
     if type=="image":
-        
+"""
     
