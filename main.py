@@ -1,7 +1,5 @@
 import datetime
 import json
-import os
-import shutil
 from dis import disco
 from http import client
 from pydoc import cli
@@ -9,7 +7,10 @@ from ssl import CHANNEL_BINDING_TYPES
 import requests
 import json
 import discord
-
+"""
+import function
+import io
+"""
 
 intents=discord.Intents.all()
 intents.message_content=True
@@ -105,17 +106,20 @@ async def on_message_delete(message):
             channel = bot.get_channel(logging_channel)
             for attach in message.attachments:
                 info = requests.head(attach.proxy_url)
-                size=int(info.headers["Content-Length"])
                 tier=message.guild.premium_tier
                 if tier<2:
-                    if int(info.headers["Content-Length"]) <= 8388608:
+                    if int(info.headers["Content-Length"]) <= 26214400:
                         files_data.append(await attach.to_file())
+                    """
                     else:
-                        compression(attach.proxy_url,8,attach.content_type)
-                elif tier==2
+                        data=await function.compression(attach,8)
+                        files_data.append(discord.File(io.BytesIO(data),filename=attach.filename))
+                    """
+                        
+                elif tier==2:
                     if int(info.headers["Content-Length"]) <= 52428800:
                         files_data.append(await attach.to_file())
-                elif tier==3
+                elif tier==3:
                     if int(info.headers["Content-Length"]) <= 104857600:
                         files_data.append(await attach.to_file())
             await channel.send(embed=embed,files=files_data)
@@ -145,7 +149,7 @@ async def on_message_edit(message_before,message_after):
         embed.set_author(name="{0}#{1}".format(message_before.author.name, message_before.author.discriminator), icon_url="{}".format(message_before.author.display_avatar.url))
         channel = bot.get_channel(logging_channel)
         await channel.send(embed=embed)
-
+"""
 @bot.event
 async def on_member_join(member):
     with open("guild.json", "r") as json_file:
@@ -161,7 +165,7 @@ async def on_member_join(member):
                 await member.create_dm()
                 await member.dm_channel.send("User whose account has been created for "+str(json_data["{}".format(member.guild.id)]["autokick_created_at"])+"days can join `{}`".format(member.guild.name))
             await member.kick(reason="this account is created at less than"+str(json_data["{}".format(member.guild.id)]["autokick_created_at"])+"days")
-
+"""
 @bot.event
 async def on_voice_state_update(member, before, after):
     for ch in member.guild.text_channels:
@@ -236,12 +240,3 @@ with open("config.json", "r") as json_file:
     json_data = json.load(json_file)
 token = json_data["token"]
 bot.run(token)
-
-
-
-def compression(url,size,type):
-    info = requests.head(url)
-    size=int(info.headers["Content-Length"])
-    if type=="image":
-        
-    
