@@ -4,50 +4,68 @@ from dis import disco
 from http import client
 from pydoc import cli
 from ssl import CHANNEL_BINDING_TYPES
+from typing import Any
+from discord.ext.commands.core import Command
 import requests
-import json
+
 import discord
-"""
+from discord import app_commands
+from discord.ext import commands
+
+
 import function
 import io
-"""
+
 
 intents=discord.Intents.all()
 intents.message_content=True
 bot=discord.Client(intents=intents)
+
+bot = commands.Bot(command_prefix='!',intents=intents)
 
 
 @bot.event
 async def on_ready():
     print(f"logged in as {bot.user}")
 
-"""
-@bot.slash_command(description="Check bot's response latency")
-async def ping(ctx):
-    delay = int(bot.latency*1000)
-    embed = discord.Embed(title="Pong!", description=f"Delay: {delay} ms", color=0xFFFFFF)
-    await ctx.respond(embed=embed)
 
 
 
-@bot.slash_command(description="Kick user whose account has been created for a set period of time (0 means don't kick, default is 0)")
-async def autokick_created_at(ctx, days: Option(int, "set day")):
-    if not ctx.author.guild_permissions.kick_members:
-        return
-    with open("guild.json","r") as json_file:
-        json_data = json.load(json_file)
+class CustomHelp(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        embed=discord.Embed(color=discord.Color.dark_embed(),title="Help",
+                             description=
+                            "slash command\n- ping\n - check the bot's latency\n\nadministrator command\n- help <command>(optional)\n - send help embed\n - send <command>\'s help embed\n- setting <arg>\n - set the Logging channel with preset")
+        await destination.send(embed=embed)
 
-    if f"{ctx.guild.id}" not in json_data.keys():
-        json_data[f"{ctx.guild.id}"]={"autokick_created_at":days}
-    if "autoskick_created_at" not in json_data[f"{ctx.guild.id}"].keys():
-        json_data[f"{ctx.guild.id}"]={"autokick_created_at":days}
+bot.help_command=CustomHelp()
+
+
+@bot.tree.command(description="Check bot's response latency",name="ping")
+async def ping(interaction: discord.Interaction):
+    embed = discord.Embed(title="Pong!", description=f"Delay: {round(bot.latency*1000)} ms", color=0xFFFFFF)
+    await interaction.response.send_message(embed=embed)
+
+@bot.command()
+async def setting(ctx, arg=""):
+    
+    data = {'message':"-m.d.c-m.e",'attachment':"-m.d.a",'voice':"-v.dm-v.jl",'exception':"-except"}
+    topic = ctx.channel.topic
+    print(topic)
+    if arg in ['message','attachment','voice','exception']:
+        if topic == None:
+            await ctx.channel.edit(topic=data[arg])
+            await ctx.send(f"{data[arg]} mode is set")
+        else:
+            await ctx.channel.edit(topic=topic+data[arg])
+            await ctx.send(f"{data[arg]} mode is set")
+    elif arg=="clear":
+        await ctx.channel.edit(topic="")
+    elif arg =="":
+        await ctx.send("please add arg\n\nif you want to know arg? do !help setting")
     else:
-        json_data[f"{ctx.guild.id}"]["autokick_created_at"]=days
-    with open ("guild.json","w") as json_file:
-        json.dump(json_data, json_file, indent=2)
-    await ctx.respond(f"set {days} days!")
-"""
-
+        await ctx.send(f"{arg} is not exist")
 
 
 @bot.event
@@ -108,13 +126,13 @@ async def on_message_delete(message):
                 info = requests.head(attach.proxy_url)
                 tier=message.guild.premium_tier
                 if tier<2:
-                    if int(info.headers["Content-Length"]) <= 26214400:
+                    if int(info.headers["Content-Length"]) <= 0:
                         files_data.append(await attach.to_file())
-                    """
+                    
                     else:
-                        data=await function.compression(attach,8)
-                        files_data.append(discord.File(io.BytesIO(data),filename=attach.filename))
-                    """
+                        data, name=await function.compression(attach,25)
+                        files_data.append(discord.File(io.BytesIO(data),filename=name))
+                    
                         
                 elif tier==2:
                     if int(info.headers["Content-Length"]) <= 52428800:
@@ -149,23 +167,8 @@ async def on_message_edit(message_before,message_after):
         embed.set_author(name="{0}#{1}".format(message_before.author.name, message_before.author.discriminator), icon_url="{}".format(message_before.author.display_avatar.url))
         channel = bot.get_channel(logging_channel)
         await channel.send(embed=embed)
-"""
-@bot.event
-async def on_member_join(member):
-    with open("guild.json", "r") as json_file:
-        json_data = json.load(json_file)
-    if "{}".format(member.guild.id) in json_data.keys() and "autokick_created_at" in json_data["{}".format(member.guild.id)].keys():
-        now = datetime.datetime.utcnow().replace(tzinfo=None)
-        created_at = member.created_at.replace(tzinfo=None)
-        diff = now - created_at
-        if diff.days < json_data["{}".format(member.guild.id)]["autokick_created_at"]:
-            if member.dm_channel:
-                await member.dm_channel.send("User whose account has been created for "+str(json_data["{}".format(member.guild.id)]["autokick_created_at"])+"days can join `{}`".format(member.guild.name))
-            else:
-                await member.create_dm()
-                await member.dm_channel.send("User whose account has been created for "+str(json_data["{}".format(member.guild.id)]["autokick_created_at"])+"days can join `{}`".format(member.guild.name))
-            await member.kick(reason="this account is created at less than"+str(json_data["{}".format(member.guild.id)]["autokick_created_at"])+"days")
-"""
+
+
 @bot.event
 async def on_voice_state_update(member, before, after):
     for ch in member.guild.text_channels:
@@ -231,9 +234,6 @@ async def on_voice_state_update(member, before, after):
         channel = bot.get_channel(logging_channel2)
         await channel.send(embed=embed)
             
-
-        
-
 
 
 with open("config.json", "r") as json_file:

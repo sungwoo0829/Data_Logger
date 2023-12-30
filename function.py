@@ -1,39 +1,53 @@
 import discord
-from PIL import Image, ImageSequence
+from PIL import Image
 import ffmpeg
 import requests
 import io
 import moviepy.editor as mp
 import os
+import sys
+
 
 
 async def compression(attach,size):
     info = requests.head(attach.proxy_url)
-    size1=int(info.headers["Content-Length"])
     type = attach.content_type.split('/')
+    data = io.BytesIO(await attach.read())
+    if type[0]=="image": 
+        return compress_image(data,size,attach)
+    elif type[0]=="video":
+        return compress_video_output(attach,size)
+        
+
+def compress_image(data, size, attach):
+    output=io.BytesIO()
+    size1=sys.getsizeof(data)
     pro=size1/(size*1000000)
-    da = io.BytesIO(await attach.read())
-    if type[0]=="image":
-        data=io.BytesIO()
-        with Image.open(da) as im:
-            if im.is_animated:
-                clip=mp.VideoFileClip(da)
-                clip.write_videofile(data,audio=False)
-                data=data.getvalue()
-                return data
+    with Image.open(data) as im:
+        if im.is_animated:
+            clip=mp.VideoFileClip(attach.proxy_url)
+            clip.write_videofile("output.mp4",audio=False)
+            with open("output.mp4","rb") as f:
+                output = io.BytesIO(f.read())
+            output=output.getvalue()
+            os.remove("output.mp4")
+            name="".join(attach.filename.split(".")[:-1])+".mp4"
+            return output, name
+        else:
+            im=im.convert("RGB")
+            if pro<=2:
+                im.save(output,format='JPEG', quality=100)
+                output=output.getvalue()
+                return output
+            elif pro<=7:
+                im.save(output,format='JPEG', quality=90)
+                output=output.getvalue()
+                return output
             else:
-                if pro<=2:
-                    im.save(data,format='JPEG', quality=100)
-                    data=data.getvalue()
-                    return data
-                elif pro<=7:
-                    im.save(data,format='JPEG', quality=90)
-                    data=data.getvalue()
-                    return data
-                else:
-                    im.save(data,format='JPEG', quality=50)
-                    data=data.getvalue()
-                    return data
+                im.save(output,format='JPEG', quality=50)
+                output=output.getvalue()
+                return output, attach.filename
+    
         
 def compress_video(video_full_path, output_file_name, target_size):
     # Reference: https://en.wikipedia.org/wiki/Bit_rate#Encoding_bit_rate
@@ -66,4 +80,16 @@ def compress_video(video_full_path, output_file_name, target_size):
                   **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}
                   ).overwrite_output().run()
 
+def compress_video_output(attach, size):
+    attach.save("input.mp4")
+
+    
+    compress_video("input.mp4", 'output.mp4', size * 1000)
+    with open("output.mp4","rb") as f:
+        output = io.BytesIO(f.read())
+    output=output.getvalue()
+    os.remove("output.mp4")
+    os.remove("input.mp4")
+    name="".join(attach.filename.split(".")[:-1])+".mp4"
+    return output, name
     
