@@ -52,7 +52,6 @@ async def setting(ctx, arg=""):
     
     data = {'message':"-m.d.c-m.e",'attachment':"-m.d.a",'voice':"-v.dm-v.jl",'exception':"-except"}
     topic = ctx.channel.topic
-    print(topic)
     if arg in ['message','attachment','voice','exception']:
         if topic == None:
             await ctx.channel.edit(topic=data[arg])
@@ -67,6 +66,22 @@ async def setting(ctx, arg=""):
     else:
         await ctx.send(f"{arg} is not exist")
 
+@bot.command()#이거 픽스 해야하는데 귀찮ㄷ
+async def audio(ctx, arg):
+    file_data=[]
+    
+    channel=discord.Client.get_channel(id=int(arg.split("/")[-2]))
+    partial_message=channel.get_partial_message(message_id=int(arg.split("/")[-1]))
+    message=await partial_message.fetch()
+    for attach in message.attachments():
+        type = attach.content_type.split('/')
+        if type=="audio":
+            data,name=function.compress_audio(attach,25)
+            file_data.append(discord.File(io.BytesIO(data),filename=name))
+        else:
+            pass
+    
+    await ctx.send(files=file_data)
 
 @bot.event
 async def on_message_delete(message):
@@ -126,7 +141,7 @@ async def on_message_delete(message):
                 info = requests.head(attach.proxy_url)
                 tier=message.guild.premium_tier
                 if tier<2:
-                    if int(info.headers["Content-Length"]) <= 0:
+                    if int(info.headers["Content-Length"]) <= 26214400:
                         files_data.append(await attach.to_file())
                     
                     else:
