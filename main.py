@@ -66,22 +66,20 @@ async def setting(ctx, arg=""):
     else:
         await ctx.send(f"{arg} is not exist")
 
-@bot.command()#이거 픽스 해야하는데 귀찮ㄷ
+@bot.command()
 async def audio(ctx, arg):
     file_data=[]
-    
-    channel=discord.Client.get_channel(id=int(arg.split("/")[-2]))
-    partial_message=channel.get_partial_message(message_id=int(arg.split("/")[-1]))
+    channel=bot.get_channel(int(arg.split("/")[-2]))
+    partial_message=channel.get_partial_message(int(arg.split("/")[-1]))
     message=await partial_message.fetch()
-    for attach in message.attachments():
-        type = attach.content_type.split('/')
-        if type=="audio":
+    for attach in message.attachments:
+        try:
             data,name=function.compress_audio(attach,25)
             file_data.append(discord.File(io.BytesIO(data),filename=name))
-        else:
+        except:
             pass
     
-    await ctx.send(files=file_data)
+    await ctx.send(f"{arg}\'s audio files to video files",files=file_data)
 
 @bot.event
 async def on_message_delete(message):
