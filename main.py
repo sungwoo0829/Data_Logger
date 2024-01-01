@@ -49,22 +49,23 @@ async def ping(interaction: discord.Interaction):
 
 @bot.command()
 async def setting(ctx, arg=""):
-    
-    data = {'message':"-m.d.c-m.e",'attachment':"-m.d.a",'voice':"-v.dm-v.jl",'exception':"-except"}
-    topic = ctx.channel.topic
-    if arg in ['message','attachment','voice','exception']:
-        if topic == None:
-            await ctx.channel.edit(topic=data[arg])
-            await ctx.send(f"{data[arg]} mode is set")
+    if ctx.author.guild_permissions.administrator:
+
+        data = {'message':"-m.d.c-m.e",'attachment':"-m.d.a",'voice':"-v.dm-v.jl",'exception':"-except"}
+        topic = ctx.channel.topic
+        if arg in ['message','attachment','voice','exception']:
+            if topic == None:
+                await ctx.channel.edit(topic=data[arg])
+                await ctx.send(f"{data[arg]} mode is set")
+            else:
+                await ctx.channel.edit(topic=topic+data[arg])
+                await ctx.send(f"{data[arg]} mode is set")
+        elif arg=="clear":
+            await ctx.channel.edit(topic="")
+        elif arg =="":
+            await ctx.send("please add arg\n\nif you want to know arg? do !help setting")
         else:
-            await ctx.channel.edit(topic=topic+data[arg])
-            await ctx.send(f"{data[arg]} mode is set")
-    elif arg=="clear":
-        await ctx.channel.edit(topic="")
-    elif arg =="":
-        await ctx.send("please add arg\n\nif you want to know arg? do !help setting")
-    else:
-        await ctx.send(f"{arg} is not exist")
+            await ctx.send(f"{arg} is not exist")
 
 @bot.command()
 async def audio(ctx, arg):
